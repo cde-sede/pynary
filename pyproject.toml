@@ -1,0 +1,38 @@
+[build-system]
+requires = [
+  "setuptools>=64",
+  "wheel",               # for bdist package distribution
+]
+
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+
+[tool.setuptools_scm]
+write_to = "src/pynary/_version.py"
+
+[project]
+name = "pynary"
+dynamic = ["version"]
+description = "A (basic?) (badly written) python binary encoder-decoder for custom binary formats"
+authors = [{ name = "cde-sede" }, { email = "clement.desede@gmail.com" }]
+maintainers = [{ name = "cde-sede" }, { email = "clement.desede@gmail.com" }]
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+requires-python = ">=3.7"
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+]
+
+[project.urls]
+Homepage = "https://github.com/cde-sede/pynary"
+documentation = "https://github.com/cde-sede/pynary"
+repository = "https://github.com/cde-sede/pynary"
+changelog = "https://github.com/cde-sede/pynary/blob/main/CHANGELOG.md"
