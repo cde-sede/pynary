@@ -1,7 +1,6 @@
 import struct
 from typing import Any, Type, NewType, TypeAlias, BinaryIO
 from io import BytesIO
-from enum import Enum
 import inspect
 
 
@@ -82,7 +81,7 @@ class _STR_LE(SVAL):		_format = '<s'
 class _BYTES_LE(SVAL):		_format = '>p'
 
 
-class types(Enum):
+class types:
 	CHAR_BE      = NewType('CHAR_BE', bytes)
 	BYTE_BE      = NewType('BYTE_BE', bytes)
 	BOOL_BE      = NewType('BOOL_BE', bool)
