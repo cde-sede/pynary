@@ -143,8 +143,11 @@ class structure:
 def read(path: str):
 	with open(path, 'rb') as f:
 		s = structure.read(f)
-		print(s['argv'])
-		print(s['stdin'])
+		print(s['integer'])
+		print(s['array'])
+		print(s['bynary blob'])
+		print(s['string blob'])
+
 
 def save(path: str):
 	with open(path, 'wb') as f:
