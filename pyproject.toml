@@ -14,9 +14,6 @@ package-dir = { "" = "src" }
 where = ["src"]
 namespaces = true
 
-[tool.setuptools_scm]
-write_to = "src/pynary/_version.py"
-
 [project]
 name = "pynary"
 dynamic = ["version"]
