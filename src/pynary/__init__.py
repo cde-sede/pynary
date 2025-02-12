@@ -1,5 +1,5 @@
 import struct
-from typing import Any, Type, NewType, TypeAlias, BinaryIO
+from typing import Any, Type, NewType, TypeAlias, BinaryIO, cast
 from io import BytesIO
 import inspect
 
@@ -157,7 +157,7 @@ def cast_object[T](type_: Type[T], values) -> T:
 		values = dict(values)
 	if not isinstance(values, dict):
 		raise TypeError("values must be a dict of property and values or a list that can be casted to such a dict")
-	return values # pyright: ignore
+	return cast(T, values)
 
 
 class IOStream:
