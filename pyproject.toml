@@ -16,7 +16,7 @@ namespaces = true
 
 [project]
 name = "pynary"
-dynamic = ["version"]
+version = "0.1.0"
 description = "A (basic?) (badly written) python binary encoder-decoder for custom binary formats"
 authors = [{ name = "cde-sede" }, { email = "clement.desede@gmail.com" }]
 maintainers = [{ name = "cde-sede" }, { email = "clement.desede@gmail.com" }]

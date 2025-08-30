@@ -10,6 +10,7 @@ __all__ = [
 	"cast_object",
 	"IOStream",
 	"IOobject",
+	"binary_length",
 
 	"types"
 ]
@@ -148,6 +149,40 @@ _GETTERS = {
 	types.BYTES_LE:     _BYTES_LE,
 }
 
+_SIZES = {
+	types.CHAR_BE:      struct.calcsize('>c'),
+	types.BYTE_BE:      struct.calcsize('>b'),
+	types.BOOL_BE:      struct.calcsize('>?'),
+	types.SHORT_BE:     struct.calcsize('>h'),
+	types.USHORT_BE:    struct.calcsize('>H'),
+	types.INT_BE:       struct.calcsize('>i'),
+	types.UINT_BE:      struct.calcsize('>I'),
+	types.LONG_BE:      struct.calcsize('>l'),
+	types.ULONG_BE:     struct.calcsize('>L'),
+	types.LONGLONG_BE:  struct.calcsize('>q'),
+	types.ULONGLONG_BE: struct.calcsize('>Q'),
+	types.FLOAT_BE:     struct.calcsize('>f'),
+	types.DOUBLE_BE:    struct.calcsize('>d'),
+	types.STR_BE:       0,  # Variable size
+	types.BYTES_BE:     0,  # Variable size
+
+	types.CHAR_LE:      struct.calcsize('<c'),
+	types.BYTE_LE:      struct.calcsize('<b'),
+	types.BOOL_LE:      struct.calcsize('<?'),
+	types.SHORT_LE:     struct.calcsize('<h'),
+	types.USHORT_LE:    struct.calcsize('<H'),
+	types.INT_LE:       struct.calcsize('<i'),
+	types.UINT_LE:      struct.calcsize('<I'),
+	types.LONG_LE:      struct.calcsize('<l'),
+	types.ULONG_LE:     struct.calcsize('<L'),
+	types.LONGLONG_LE:  struct.calcsize('<q'),
+	types.ULONGLONG_LE: struct.calcsize('<Q'),
+	types.FLOAT_LE:     struct.calcsize('<f'),
+	types.DOUBLE_LE:    struct.calcsize('<d'),
+	types.STR_LE:       0,  # Variable size
+	types.BYTES_LE:     0,  # Variable size
+}
+
 
 def cast_object[T](type_: Type[T], values) -> T:
 	if isinstance(values, (list, list)):
@@ -189,12 +224,19 @@ def IOobject(c):
 	annotations = inspect.get_annotations(c)
 	c._is_ioobject = True
 	c._getters = []
+	binary_size = 0
+	
 	for k, t in annotations.items():
 		if t in _GETTERS:
 			setattr(c, k, _GETTERS[t]())
 			c._getters.append(k)
+			binary_size += _SIZES[t]
 		if hasattr(t, '_is_ioobject') and t._is_ioobject:
 			setattr(c, k, _descr(t))
+			assert hasattr(t, "__binary_length__")
+			binary_size += t.__binary_length__
+	
+	c.__binary_length__ = binary_size
 
 	def __get__(self, obj, objtype=None):
 		for i in self._getters:
@@ -207,3 +249,9 @@ def IOobject(c):
 	c.__get__ = __get__
 	c.__set__ = __set__
 	return c
+
+
+def binary_length(obj_class) -> int:
+	if not hasattr(obj_class, '__binary_length__'):
+		raise ValueError(f"Object {obj_class} is not decorated with @IOobject")
+	return obj_class.__binary_length__
