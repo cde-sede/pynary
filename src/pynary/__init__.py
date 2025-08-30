@@ -11,6 +11,7 @@ __all__ = [
 	"IOStream",
 	"IOobject",
 	"binary_length",
+	"last_length",
 
 	"types"
 ]
@@ -20,34 +21,52 @@ class SVAL:
 	_last: int = 0
 	_val: Any = None
 	def __get__(self, obj, objtype=None):
+		bytes_read = 0
 		if self._format in ['>s', '<s', 's']:
-			bytes_ = obj._io.read(struct.calcsize(self._format) * SVAL._last)
+			bytes_read = struct.calcsize(self._format) * SVAL._last
+			bytes_ = obj._io.read(bytes_read)
 			SVAL._last = 0
 			self._val = SVAL._last
-			return bytes_.decode('utf8')
+			result = bytes_.decode('utf8')
 		elif self._format in ['>p', '<p', 'p']:
-			bytes_ = obj._io.read(struct.calcsize(self._format) * SVAL._last)
+			bytes_read = struct.calcsize(self._format) * SVAL._last
+			bytes_ = obj._io.read(bytes_read)
 			SVAL._last = 0
 			self._val = SVAL._last
-			return bytes_
+			result = bytes_
 		elif self._format in ['>c', '<c', 'c']:
-			bytes_ = obj._io.read(1)
+			bytes_read = 1
+			bytes_ = obj._io.read(bytes_read)
 			SVAL._last = 0
 			self._val = SVAL._last
-			return bytes_.decode('utf8')
+			result = bytes_.decode('utf8')
 		else:
-			bytes_ = obj._io.read(struct.calcsize(self._format))
+			bytes_read = struct.calcsize(self._format)
+			bytes_ = obj._io.read(bytes_read)
 			SVAL._last = struct.unpack(self._format, bytes_)[0]
 			self._val = SVAL._last
-			return SVAL._last
+			result = SVAL._last
+		
+		if hasattr(type(obj), '__last_length__'):
+			type(obj).__last_length__ += bytes_read
+		
+		return result
 
 	def __set__(self, obj, value):
+		bytes_written = 0
 		if self._format in ['>s', '<s', 's']:
 			obj._io.write(value)
+			bytes_written = len(value)
 		elif self._format in ['>p', '<p', 'p']:
 			obj._io.write(value)
+			bytes_written = len(value)
 		else:
-			obj._io.write(struct.pack(self._format, value))
+			packed_data = struct.pack(self._format, value)
+			obj._io.write(packed_data)
+			bytes_written = len(packed_data)
+		
+		if hasattr(type(obj), '__last_length__'):
+			type(obj).__last_length__ += bytes_written
 
 class _CHAR_BE(SVAL):		_format = '>c'
 class _BYTE_BE(SVAL):		_format = '>b'
@@ -210,12 +229,16 @@ class _descr:
 		self._instance = None
 
 	def __get__(self, obj, objtype=None):
-		return [getattr(self._instance, i) for i in self._type._getters]
+		if self._instance is None:
+			self._instance = self._type(obj._io)
+		return self._instance
 
 	def __set__(self, obj, values):
 		if isinstance(values, self._type):
 			self._instance = values
 			return 
+		if self._instance is None:
+			self._instance = self._type(obj._io)
 		for k in self._type._getters:
 			setattr(self._instance, k, values[k])
 
@@ -224,6 +247,7 @@ def IOobject(c):
 	annotations = inspect.get_annotations(c)
 	c._is_ioobject = True
 	c._getters = []
+	c.__last_length__ = 0
 	binary_size = 0
 	
 	for k, t in annotations.items():
@@ -255,3 +279,24 @@ def binary_length(obj_class) -> int:
 	if not hasattr(obj_class, '__binary_length__'):
 		raise ValueError(f"Object {obj_class} is not decorated with @IOobject")
 	return obj_class.__binary_length__
+
+
+def last_length(obj_instance) -> int:
+	if not hasattr(type(obj_instance), '_is_ioobject'):
+		raise ValueError(f"Object {obj_instance} is not an instance of an IOobject")
+	
+	total_length = 0
+	obj_class = type(obj_instance)
+	
+	if hasattr(obj_class, '__last_length__'):
+		total_length += obj_class.__last_length__
+		obj_class.__last_length__ = 0
+	
+	annotations = inspect.get_annotations(obj_class)
+	for k, t in annotations.items():
+		if hasattr(t, '_is_ioobject') and t._is_ioobject:
+			if hasattr(t, '__last_length__'):
+				total_length += t.__last_length__
+				t.__last_length__ = 0
+	
+	return total_length
